@@ -15,6 +15,12 @@ public class UIManagerInWait : MonoBehaviourPunCallbacks
     [SerializeField] Image m_imgReturnLobbyPanel;
     [SerializeField] GameObject m_goJoy;
 
+    public CinemachineMoving cinemachineMoving;
+    public Transform m_newFollow;
+    public Transform m_InitFollow;
+    public Transform m_newLookAt;
+    public Transform m_InitLookAt;
+
     #region 채팅관련
     [SerializeField] GameObject m_goChatPanel;
     [SerializeField] InputField m_inputChat;
@@ -35,13 +41,14 @@ public class UIManagerInWait : MonoBehaviourPunCallbacks
     [SerializeField] Image m_imgSettingButton;
     #endregion
 
-    #region 카메라 이동관련
-    [SerializeField] CamMoving m_camMoving;
-    [SerializeField] CamMoving m_camLookMoving;
-    #endregion
+    //#region 카메라 이동관련
+    //[SerializeField] CamMoving m_camMoving;
+    //[SerializeField] CamMoving m_camLookMoving;
+    //#endregion
 
     #region 게임시작 관련
     [SerializeField] Text m_txtGameStart;
+    bool m_isStarted = false;
     #endregion
 
     void Start()
@@ -68,7 +75,9 @@ public class UIManagerInWait : MonoBehaviourPunCallbacks
 
     IEnumerator ActiveUI()
     {
-        StartCoroutine(m_camLookMoving.MoveCam());
+        //StartCoroutine(m_camLookMoving.MoveCam());
+
+
         UIManager.FadeOutImage(m_imgDarkChange, 1f);
 
         yield return new WaitForSeconds(0.5f);
@@ -79,6 +88,10 @@ public class UIManagerInWait : MonoBehaviourPunCallbacks
 
         UIManager.FadeInOutText(m_txtSubTitle, 2f);
 
+        yield return new WaitForSeconds(1.0f);
+
+        cinemachineMoving.ChangeCameraTargetSmooth(m_InitFollow, m_InitFollow, m_InitLookAt, m_newLookAt, 2f, Ease.InQuart);
+
         yield return new WaitForSeconds(3f);
 
         UIManager.ShowScale(m_txtReturnLobby.gameObject);
@@ -86,7 +99,9 @@ public class UIManagerInWait : MonoBehaviourPunCallbacks
         UIManager.ShowScale(m_goChatPanel);
         UIManager.ShowScale(m_imgClassButton.gameObject);
         UIManager.ShowScale(m_imgSettingButton.gameObject);
-        UIManager.ShowScale(m_txtGameStart.gameObject);
+
+        if(PhotonNetwork.IsMasterClient)
+            UIManager.ShowScale(m_txtGameStart.gameObject);
     }
 
     public void OnClickReturnLobby()
@@ -167,13 +182,32 @@ public class UIManagerInWait : MonoBehaviourPunCallbacks
 
     public void OnClickGameStart()
     {
+        if (m_isStarted) return;
+
+        m_isStarted = true;
         NetworkManager.nm.PV.RPC("GameStart", RpcTarget.All);
         //StartCoroutine(GameStart());
     }
 
     public IEnumerator GameStart()
     {
-        StartCoroutine(m_camMoving.MoveCam());
+        //StartCoroutine(m_camMoving.MoveCam());
+        //여기서 UI다 꺼줘야됨
+
+        if (PhotonNetwork.IsMasterClient)
+            UIManager.HideScale(m_txtGameStart.gameObject);
+
+        m_goClassPanel.SetActive(false);
+
+        cinemachineMoving.ChangeCameraTargetSmooth(m_InitFollow, m_newFollow, m_InitLookAt ,m_newLookAt, 4f, Ease.InQuart);
+
+        yield return new WaitForSeconds(1.0f);
+
+        UIManager.HideScale(m_txtReturnLobby.gameObject);
+        UIManager.HideScale(m_goJoy);
+        UIManager.HideScale(m_goChatPanel);
+        UIManager.HideScale(m_imgClassButton.gameObject);
+        UIManager.HideScale(m_imgSettingButton.gameObject);
 
         yield return new WaitForSeconds(2f);
 

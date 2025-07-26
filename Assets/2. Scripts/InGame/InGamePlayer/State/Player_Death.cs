@@ -26,6 +26,7 @@ public class Player_Death : PlayerBaseState
                         PhotonNetwork.Destroy(GameManager.gm.m_listOrderInfo[idx].gameObject);
 
                     BattleManager.m_listBattleTimelineInfo.RemoveAt(idx);
+                    BattleManager.m_listReadyBattleTime.Remove(info);
                 }
             }
         }
@@ -47,6 +48,11 @@ public class Player_Death : PlayerBaseState
 
         //마인 이미지 없애야됨
         playerController.m_playerCanvas.m_imgMine.gameObject.SetActive(false);
+    }
+
+    public override void OnAnimatorMove()
+    {
+
     }
 
     public override void OnUpdateState()

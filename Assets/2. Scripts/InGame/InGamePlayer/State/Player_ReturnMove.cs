@@ -13,6 +13,11 @@ public class Player_ReturnMove : PlayerBaseState
         playerController.m_pv.RPC("DoMoveRPC", RpcTarget.All, playerController.m_vMovePos, playerController.m_fMoveTime, Ease.OutQuad);
     }
 
+    public override void OnAnimatorMove()
+    {
+
+    }
+
     public override void OnUpdateState()
     {
 

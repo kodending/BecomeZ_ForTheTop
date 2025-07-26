@@ -9,14 +9,28 @@ public class GameInWait : BaseState
     {
         GameManager.m_curState = GAMESTATE.WAITROOM;
 
-        if(!GameManager.gm.m_bRoomCreator)
+        if(!GameManager.gm.bReturnRoom)
         {
-            NetworkManager.JoinRoom(GameManager.gm.m_curRoomInfo.m_networkRoomInfo.Name);
+            if (!GameManager.gm.m_bRoomCreator)
+            {
+                NetworkManager.JoinRoom(GameManager.gm.m_curRoomInfo.m_networkRoomInfo.Name);
+            }
+            else
+            {
+                NetworkManager.CreateRoom(GameManager.gm.m_curRoomName, GameManager.gm.m_curRoomPassword);
+            }
         }
+
         else
         {
-            NetworkManager.CreateRoom(GameManager.gm.m_curRoomName, GameManager.gm.m_curRoomPassword);
+            GameObject lobbyPlayer = PhotonNetwork.Instantiate("LOBBYPLAYER_1", new Vector3(0, 0.012f, 0), Quaternion.Euler(0, 180, 0));
+            lobbyPlayer.GetComponent<LobbyPlayerController>().InitInfo();
+            lobbyPlayer.SetActive(true);
         }
+
+        GameManager.gm.bReturnRoom = false;
+
+        AudioManager.PlayBGM(BGM.WAITING, true);
     }
 
     public override void OnUpdateState()

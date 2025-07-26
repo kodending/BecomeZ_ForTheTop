@@ -8,7 +8,7 @@ public class BattleInNextFloor : BaseState
 {
     public override void OnEnterState()
     {
-        BattleManager.MoveCam(BATTLECAMTYPE.NEXTFLOOR, 1f, 2.0f);
+        BattleManager.MoveCam(BATTLECAMTYPE.NEXTFLOOR, 2.5f);
 
         BattleManager.bm.StartCoroutine(ChangeNextFloor());
     }
@@ -38,24 +38,26 @@ public class BattleInNextFloor : BaseState
         if (GameManager.gm.m_inGamePlayer.m_pv.IsMine)
         {
             //먼저 정보를 저장한다.
-            UserDataManager.SaveUserStats(GameManager.gm.m_inGamePlayer.m_sCurStats);
-
-            PhotonNetwork.Destroy(GameManager.gm.m_inGamePlayer.gameObject);
+            string json = JsonUtility.ToJson(GameManager.gm.m_inGamePlayer.m_sCurStats);
+            GameManager.gm.m_inGamePlayer.m_pv.RPC("SaveUserInfoRPC", RpcTarget.All,
+                GameManager.gm.m_BattlePosIdx, json);
         }
 
+        //에너미에 활성화된 오브젝트를 비활성화시켜야됨
+        foreach(var enemy in GameManager.gm.m_listEnemyInfo)
+        {
+            enemy.InActiveObj();
+        }
 
         //에너미
         //타임라인 다 없애야됨
         if(PhotonNetwork.IsMasterClient)
-        {
-            //Debug.Log("에너미 리스트 : " + GameManager.gm.m_listEnemyInfo.Count);
-            PhotonNetwork.DestroyAll();
-        }
-
-        yield return new WaitForSeconds(2.5f);
+            GameManager.gm.m_listOrderInfo.Clear();
 
         BattleManager.m_listBattleTimelineInfo.Clear();
         BattleManager.m_listBattleInfo.Clear();
+
+        yield return new WaitForSeconds(2f);
 
         UIManager.FadeInImage(GameManager.m_curUI.GetComponent<UIManagerInGame>().m_imgDarkFade, 1f);
         UIManager.um.StartCoroutine(GameManager.ChangeScene("InGameScene", GAMESTATE.INGAME, 1f));

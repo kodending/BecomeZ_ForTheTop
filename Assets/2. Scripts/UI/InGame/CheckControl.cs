@@ -1,12 +1,10 @@
-using Photon.Pun.Demo.Cockpit;
 using System.Collections;
 using System.Collections.Generic;
-using System.Security.Cryptography;
+using System.Linq;
+using Photon.Pun;
+using Photon.Realtime;
 using UnityEngine;
-using UnityEngine.Experimental.Rendering;
 using UnityEngine.UI;
-using static UnityEditor.Progress;
-using static UnityEngine.AdaptivePerformance.Provider.AdaptivePerformanceSubsystemDescriptor;
 
 #region 룬 착용 관련 슬롯정리
 [System.Serializable]
@@ -53,6 +51,13 @@ public class CheckControl : MonoBehaviour
 
     [SerializeField] DicStatUI m_dicStatUI;
 
+    //아이템 전달 UI
+    [SerializeField] GameObject m_goGiveItemPanel;
+    [SerializeField] Text m_txtPlayerName;
+    [SerializeField] int m_currentPlayerIdx;
+
+    List<Photon.Realtime.Player> m_givePlayerList = new List<Photon.Realtime.Player>();
+    Photon.Realtime.Player m_selectedPlayer = null;
     private void Awake()
     {
         cc = this;
@@ -62,7 +67,35 @@ public class CheckControl : MonoBehaviour
     {
         m_goReadyPanel.SetActive(false);
         this.gameObject.SetActive(false);
-        BattleManager.bm.m_stateMachine.ChangeState(BATTLESTATE.NEXTFLOOR);
+
+        GameManager.gm.m_inGamePlayer.ControlWaitingNext(true);
+        UIManager.FadeInText(GameManager.m_curUI.GetComponent<UIManagerInGame>().m_txtNextWaiting, 1f);
+        //[과제]
+        //전원 준비됐는지 체크하고
+        //다 되면 넘어가야됨 여기 만들어야됨
+        bool bCheck = CheckUserWaitingNext();
+
+        if (bCheck)
+        {
+            //넥스트 플로어로 보내기
+            NetworkManager.nm.GoNextFloor();
+        }
+    }
+
+    bool CheckUserWaitingNext()
+    {
+        bool check = true;
+
+        foreach (var player in GameManager.gm.m_listPlayerInfo)
+        {
+            if(!player.m_isWaitingNext)
+            {
+                check = false;
+                break;
+            }
+        }
+
+        return check;
     }
 
     public void OnClickCheck()
@@ -486,6 +519,93 @@ public class CheckControl : MonoBehaviour
 
     //소모품 사용 함수
     //전달 함수 있어야됨
+    public void OnClickUseConsume()
+    {
+        //선택된 소모품 정보를 알아야하고
+        SlotInfo invenSlot = GetSelectedInven();
+        ITEMINFO item = new ITEMINFO();
+        if(invenSlot != null) item = invenSlot.m_item;
+
+        int invenIdx = GetSelectedInvenIndex();
+
+        //플레이어안에서 해결하도록 함.
+        StartCoroutine(GameManager.gm.m_inGamePlayer.UseConsumeItem(invenIdx, item));
+    }
+
+    #endregion
+
+    #region 아이템 전달 함수
+
+    public void OnClickGivePanel()
+    {
+        if(PhotonNetwork.CurrentRoom.Players.Count <= 1)
+        {
+            UIManager.SystemMsg("전달할 플레이어가 없습니다.");
+            return;
+        }
+
+        m_givePlayerList = PhotonNetwork.CurrentRoom.Players.Values
+        .Where(p => p.ActorNumber != PhotonNetwork.LocalPlayer.ActorNumber)
+        .ToList();
+
+        //패털부터 띄운다.
+        UIManager.ShowScale(m_goGiveItemPanel);
+
+        //누구한테 전달할건지 UI 정보를 만들어야됨
+        //photon act넘버로 찾기
+
+        m_txtPlayerName.text = m_givePlayerList[0].NickName;
+        m_txtPlayerName.transform.Find("Text").GetComponent<Text>().text = m_txtPlayerName.text;
+        m_selectedPlayer = m_givePlayerList[0];
+    }
+
+    public void OnClickNextGive()
+    {
+        m_currentPlayerIdx++;
+        if (m_currentPlayerIdx >= m_givePlayerList.Count) m_currentPlayerIdx = 0;
+
+        m_selectedPlayer = m_givePlayerList[m_currentPlayerIdx];
+
+        m_txtPlayerName.text = m_selectedPlayer.NickName;
+    }
+
+    public void OnClickPreviousGive()
+    {
+        m_currentPlayerIdx--;
+        if (m_currentPlayerIdx < 0) m_currentPlayerIdx = PhotonNetwork.CurrentRoom.Players.Count - 1;
+
+        m_selectedPlayer = m_givePlayerList[m_currentPlayerIdx];
+
+        m_txtPlayerName.text = m_selectedPlayer.NickName;
+    }
+
+    public void OnClickGiveCancel()
+    {
+        UIManager.HideScale(m_goGiveItemPanel);
+    }
+
+    public void OnClickGiveItem()
+    {
+        Debug.Log("아이템 준다.");
+
+        //선택된 아이템 정보를 알아야하고
+        SlotInfo invenSlot = GetSelectedInven();
+        ITEMINFO item = new ITEMINFO();
+        if (invenSlot != null) item = invenSlot.m_item;
+        int invenIdx = GetSelectedInvenIndex();
+
+        //대상에게 아이템 전달
+        NetworkManager.GiveItem(item, m_selectedPlayer.ActorNumber);
+
+        //내 아이템 삭제
+        InvenManager.RemoveItem(m_curPage, invenIdx, item);
+
+        //한번 리프레쉬
+        RefreshInventory();
+
+        UIManager.HideScale(m_goGiveItemPanel);
+        UIManager.SystemMsg(m_selectedPlayer.NickName + "에게 아이템을 전달하였습니다");
+    }
 
     #endregion
 
@@ -527,7 +647,7 @@ public class CheckControl : MonoBehaviour
                 int iStat = int.Parse(txtStat);
 
                 if (info.type == STATTYPE.MENT || info.type == STATTYPE.HP)
-                    iStat += (info.iStat * 5);
+                    iStat += (info.iStat * (int)CONVERT_STATS.HP_MP);
                 else
                     iStat += info.iStat;
 
@@ -556,7 +676,7 @@ public class CheckControl : MonoBehaviour
                 int iStat = int.Parse(txtStat);
 
                 if (info.type == STATTYPE.MENT || info.type == STATTYPE.HP)
-                    iStat = iStat - (info.iStat * 5);
+                    iStat = iStat - (info.iStat * (int)CONVERT_STATS.HP_MP);
                 else
                     iStat = iStat - info.iStat;
 
@@ -642,9 +762,9 @@ public class CheckControl : MonoBehaviour
                     float rateMp = (float)GameManager.gm.m_inGamePlayer.m_sCurStats.curMp /
                                 (float)GameManager.gm.m_inGamePlayer.m_sCurStats.maxMp;
 
-                    int curMp = Mathf.RoundToInt((float)(info.iStat * 5) * rateMp);
+                    int curMp = Mathf.RoundToInt((float)(info.iStat * (int)CONVERT_STATS.HP_MP) * rateMp);
 
-                    GameManager.gm.m_inGamePlayer.m_sCurStats.maxMp += (info.iStat * 5);
+                    GameManager.gm.m_inGamePlayer.m_sCurStats.maxMp += (info.iStat * (int)CONVERT_STATS.HP_MP);
                     GameManager.gm.m_inGamePlayer.m_sCurStats.curMp += curMp;
 
                     break;
@@ -659,9 +779,9 @@ public class CheckControl : MonoBehaviour
                     float rateHp = (float)GameManager.gm.m_inGamePlayer.m_sCurStats.curHp /
                         (float)GameManager.gm.m_inGamePlayer.m_sCurStats.maxHp;
 
-                    int curHp = Mathf.RoundToInt((float)(info.iStat * 5) * rateHp);
+                    int curHp = Mathf.RoundToInt((float)(info.iStat * (int)CONVERT_STATS.HP_MP) * rateHp);
 
-                    GameManager.gm.m_inGamePlayer.m_sCurStats.maxHp += (info.iStat * 5);
+                    GameManager.gm.m_inGamePlayer.m_sCurStats.maxHp += (info.iStat * (int)CONVERT_STATS.HP_MP);
                     GameManager.gm.m_inGamePlayer.m_sCurStats.curHp += curHp;
 
                     break;
@@ -704,9 +824,9 @@ public class CheckControl : MonoBehaviour
                     float rateMp = (float)GameManager.gm.m_inGamePlayer.m_sCurStats.curMp /
                             (float)GameManager.gm.m_inGamePlayer.m_sCurStats.maxMp;
 
-                    int curMp = Mathf.RoundToInt((float)(info.iStat * 5) * rateMp);
+                    int curMp = Mathf.RoundToInt((float)(info.iStat * (int)CONVERT_STATS.HP_MP) * rateMp);
 
-                    GameManager.gm.m_inGamePlayer.m_sCurStats.maxMp -= (info.iStat * 5);
+                    GameManager.gm.m_inGamePlayer.m_sCurStats.maxMp -= (info.iStat * (int)CONVERT_STATS.HP_MP);
                     GameManager.gm.m_inGamePlayer.m_sCurStats.curMp -= curMp;
 
                     break;
@@ -721,9 +841,9 @@ public class CheckControl : MonoBehaviour
                     float rateHp = (float)GameManager.gm.m_inGamePlayer.m_sCurStats.curHp /
                                     (float)GameManager.gm.m_inGamePlayer.m_sCurStats.maxHp;
 
-                    int curHp = Mathf.RoundToInt((float)(info.iStat * 5) * rateHp);
+                    int curHp = Mathf.RoundToInt((float)(info.iStat * (int)CONVERT_STATS.HP_MP) * rateHp);
 
-                    GameManager.gm.m_inGamePlayer.m_sCurStats.maxHp -= (info.iStat * 5);
+                    GameManager.gm.m_inGamePlayer.m_sCurStats.maxHp -= (info.iStat * (int)CONVERT_STATS.HP_MP);
                     GameManager.gm.m_inGamePlayer.m_sCurStats.curHp -= curHp;
 
                     break;

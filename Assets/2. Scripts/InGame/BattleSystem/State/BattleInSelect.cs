@@ -16,7 +16,7 @@ public class BattleInSelect : BaseState
                 GameManager.m_curUI.GetComponent<UIManagerInGame>().OnBattleSelectPanel();
             }
 
-            BattleManager.MoveCam(BATTLECAMTYPE.PLAYERATTACK, 0f, 1.0f);
+            BattleManager.MoveCam(BATTLECAMTYPE.PLAYERATTACK, 0.5f);
         }
 
         //¾Æ´Ò‹š
@@ -30,7 +30,7 @@ public class BattleInSelect : BaseState
                 GameManager.m_curUI.GetComponent<UIManagerInGame>().EnemyAttackSelect(BattleManager.m_listBattleTimelineInfo[0].go.GetComponent<EnemyFSM>());
             }
 
-            BattleManager.MoveCam(BATTLECAMTYPE.ENEMYATTACK, 0f, 1.0f);
+            BattleManager.MoveCam(BATTLECAMTYPE.ENEMYATTACK, 0.5f);
         }
 
         //¾Æ¹«°Íµµ ¾Æ´Ò¶§

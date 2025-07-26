@@ -13,12 +13,11 @@ MonoBehaviour:
   m_Name: PlayFabEditorPrefsSO
   m_EditorClassIdentifier: 
   DevAccountEmail: codending@gmail.com
-  DevAccountToken: aehyf8f4cngphdy8xdd69t9cf8pgcjdyaians9aeo93n5u9jzpapzjoba14j894woqkeojmdbcf46oq3wwgo5kmbtc3p3b6uuy8idxccybcnwdy4nfp846b561npr9g4w64d54twy7epxduqfjoijon4r376y4a8pa1fwzca1boi3teghmg1suh9gzncqux5cmzoitt6
-  AadAuthorization: 
+  DevAccountToken: tkgtuqyhxeknmqrozfw8wq9n9puh8ticw7m66ftomb8eyxzfhukjsxf7q3op9i4hh377mq3ey1nhnjat6fqn3p6hgpscrh581zdda136wan6n3w6fuxruomip1rfw1dmoy1xmyx45cq8m5sft8z6cbkcz8nzrzrx4hwu5ibzdohzqunhkyoswnwipiyo8ua4yu66u5of
   SelectedStudio: Pang Studio
   SdkPath: Assets/PlayFabSDK
   EdExPath: 
   LocalCloudScriptPath: 
   PanelIsShown: 0
-  curMainMenuIdx: 1
-  curSubMenuIdx: 2
+  curMainMenuIdx: 0
+  curSubMenuIdx: 0

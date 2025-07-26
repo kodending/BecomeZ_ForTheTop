@@ -5,6 +5,7 @@ using UnityEngine.Pool;
 
 //struct 정의하는 곳
 
+[System.Serializable]
 public struct CLASSSTATS
 {
     public int HP;
@@ -39,6 +40,8 @@ public struct ENEMYSTATS
     public string name;
     public int maxHp;
     public int curHp;
+    public float fSize;
+    public List<SKILLINFO> listSkills;
 }
 
 public struct BATTLEINFO
@@ -46,15 +49,17 @@ public struct BATTLEINFO
     public GameObject go;
     public float SPD;
     public bool bUser;
+    public int iRegistrationOrder;
 }
 
 public struct ITEMINFO
 {
     public int idx;
     public int itemTypeIdx;     //아이템 종류 : 소모성, 룬 등등 분류
-    public int iType;           //아이템안에 어떤 타입인지 분류
+    public int iType;           //아이템안에 어떤 타입인지 분류,
     public int iRank;           // 등급
     public int skillIdx;        // 룬아이템에 붙은 스킬인덱스
+    public string skillEngName;        // 룬아이템에 붙은 스킬이름
     public int maxStack;        // 아이템 스택최대갯수
     public int curStack;        // 아이템 현재스택갯수
     public Sprite sprite;       // 아이템 이미지
@@ -70,11 +75,13 @@ public struct RUNESTAT
     public int iStat;
 }
 
+[System.Serializable]
 public struct SKILLINFO
 {
     public int idx;
     public string name;
-    public int iClassType;
+    public string engName;  //영어 이름
+    public List<string> listAvailClasses; // 사용가능한 클래스 정의
     public int iAttackType;
     public int iSkillType;
     public float fAttackPow; //공격 계수
@@ -82,7 +89,13 @@ public struct SKILLINFO
     public float fHitTime;    //공격 히트 애니메이션 시간
     public int iConsumeMp;      //소모 MP
     public int iProbCnt;
-    public int iEffectIdx;
+    public int iAtkEffectIdx; //공격자 effect
+    public int iHitEffectIdx; //맞은놈 effect
+    public bool bHoming;        //추격하는 이펙트인지
+    public int iAttackPosIdx;        //이펙트 위치
+    public float fSelectWeight;  //스킬 선택 확률[에너미용] //룬에서 스킬 나올 확률[플레이어용]
+    public int iCurCoolTime; //현재 스킬의 쿨타임
+    public int iMaxCoolTime; //스킬의 원래쿨타임
 }
 
 

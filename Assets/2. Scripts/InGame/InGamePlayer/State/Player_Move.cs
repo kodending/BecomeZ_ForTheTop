@@ -14,6 +14,11 @@ public class Player_Move : PlayerBaseState
         //Debug.Log("나 이동 중이다.");
     }
 
+    public override void OnAnimatorMove()
+    {
+
+    }
+
     public override void OnUpdateState()
     {
         if (playerController.m_agent.remainingDistance <= playerController.m_agent.stoppingDistance)

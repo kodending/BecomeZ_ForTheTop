@@ -17,12 +17,12 @@ public class CanvasInfo : MonoBehaviour
         switch((ATTACKRESULT)atkResult)
         {
             case ATTACKRESULT.PHYSICAL_ATTACK:
-
-                m_txtDamage.text = iAtk.ToString();
-
-                break;
-
             case ATTACKRESULT.MAGIC_ATTACK:
+            case ATTACKRESULT.PHYSICAL_PIERCING_ATTACK:
+            case ATTACKRESULT.MAGIC_PIERCING_ATTACK:
+            case ATTACKRESULT.PHYSICAL_AREA_ATTACK:
+            case ATTACKRESULT.MAGIC_AREA_ATTACK:
+                m_txtDamage.text = iAtk.ToString();
 
                 break;
 

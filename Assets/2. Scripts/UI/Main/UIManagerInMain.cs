@@ -2,6 +2,7 @@ using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Audio;
 using UnityEngine.UI;
 
 public class UIManagerInMain : MonoBehaviourPunCallbacks
@@ -34,6 +35,15 @@ public class UIManagerInMain : MonoBehaviourPunCallbacks
     #region 공통
     [SerializeField] Text m_txtReturn;
     [SerializeField] Image m_imgDarkChange;
+    #endregion
+
+    #region 옵션
+    [SerializeField] GameObject m_goOptionPanel;
+    public Slider masterSlider;
+    public Slider bgmSlider;
+    public Slider sfxSlider;
+    float bgmRatio;
+    float sfxRatio;
     #endregion
 
     public void OnClickStart()
@@ -159,5 +169,86 @@ public class UIManagerInMain : MonoBehaviourPunCallbacks
     public void OnSuccessSignUp()
     {
         OnClickReturnMenu();
+    }
+
+    public void OnClickLoadOption()
+    {
+        UIManager.FadeOutText(m_txtAccess, 0.5f);
+        UIManager.FadeOutText(m_txtOption, 0.5f);
+
+        UIManager.ShowScale(m_goOptionPanel, 0.5f);
+
+        masterSlider.minValue = 0.0001f;
+        masterSlider.maxValue = 1f;
+        bgmSlider.minValue = 0.0001f;
+        bgmSlider.maxValue = 1f;
+        sfxSlider.minValue = 0.0001f;
+        sfxSlider.maxValue = 1f;
+
+
+        float master = PlayerPrefs.GetFloat("MasterVolume", 1f);
+        float bgm = PlayerPrefs.GetFloat("BGMVolume", 1f);
+        float sfx = PlayerPrefs.GetFloat("SFXVolume", 1f);
+
+        masterSlider.value = master;
+        bgmSlider.value = bgm;
+        sfxSlider.value = sfx;
+
+        bgmRatio = bgm / master;
+        sfxRatio = sfx / master;
+
+        SetMasterVolume(master);
+        SetBGMVolume(bgm);
+        SetSFXVolume(sfx);
+
+        masterSlider.onValueChanged.AddListener(SetMasterVolume);
+        bgmSlider.onValueChanged.AddListener(SetBGMVolume);
+        sfxSlider.onValueChanged.AddListener(SetSFXVolume);
+    }
+
+    public void SetMasterVolume(float value)
+    {
+        //audioMixer.SetFloat("MasterVolume", Mathf.Log10(value) * 20);
+        AudioManager.SetMasterVolume(value);
+        PlayerPrefs.SetFloat("MasterVolume", value);
+
+        // BGM, SFX도 비율에 맞춰 조정
+        bgmSlider.SetValueWithoutNotify(value * bgmRatio);
+        sfxSlider.SetValueWithoutNotify(value * sfxRatio);
+
+        SetBGMVolume(value * bgmRatio);
+        SetSFXVolume(value * sfxRatio);
+
+        PlayerPrefs.Save();
+    }
+
+    public void SetBGMVolume(float value)
+    {
+        //audioMixer.SetFloat("BGMVolume", Mathf.Log10(value) * 20);
+        AudioManager.SetBGMVolume(value);
+        PlayerPrefs.SetFloat("BGMVolume", value);
+
+        bgmRatio = value / masterSlider.value;
+
+        PlayerPrefs.Save();
+    }
+
+    public void SetSFXVolume(float value)
+    {
+        AudioManager.SetSFXVolume(value);
+        //audioMixer.SetFloat("SFXVolume", Mathf.Log10(value) * 20);
+        PlayerPrefs.SetFloat("SFXVolume", value);
+
+        sfxRatio = value / masterSlider.value;
+
+        PlayerPrefs.Save();
+    }
+
+    public void OnClickBackMain()
+    {
+        UIManager.HideScale(m_goOptionPanel);
+
+        UIManager.FadeInText(m_txtAccess, 0.5f);
+        UIManager.FadeInText(m_txtOption, 0.5f);
     }
 }

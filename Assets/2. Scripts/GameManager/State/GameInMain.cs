@@ -8,6 +8,8 @@ public class GameInMain : BaseState
     {
         GameManager.m_curState = GAMESTATE.MAIN;
         GameManager.m_curUI = GameObject.Find("UIManagerInMain");
+
+        AudioManager.PlayBGM(BGM.MAIN, true);
     }
 
     public override void OnUpdateState()

@@ -31,11 +31,11 @@ public class Enemy_Death : EnemyBaseState
             }
         }
 
-        foreach(var info in BattleManager.m_listBattleInfo)
+        foreach (var info in BattleManager.m_listBattleInfo)
         {
-            if(!info.bUser)
+            if (!info.bUser)
             {
-                if(info.go.GetComponent<EnemyFSM>() == enemyFSM)
+                if (info.go.GetComponent<EnemyFSM>() == enemyFSM)
                 {
                     BattleManager.m_listBattleInfo.Remove(info);
                     break;
@@ -43,6 +43,20 @@ public class Enemy_Death : EnemyBaseState
             }
         }
 
+        for (int idx = 0; idx < BattleManager.m_listReadyBattleTime.Count; idx++)
+        {
+            var info = BattleManager.m_listReadyBattleTime[idx];
+
+            if (!info.bUser)
+            {
+                if (info.go.GetComponent<EnemyFSM>() == enemyFSM)
+                {
+                    BattleManager.m_listReadyBattleTime.RemoveAt(idx);
+                }
+            }
+        }
+
+        //Debug.Log("BattleManager.m_listReadyBattleTime 카운트 : " + BattleManager.m_listReadyBattleTime.Count);
         int enemyIdx = GameManager.gm.m_listEnemyInfo.IndexOf(enemyFSM);
 
 
@@ -52,6 +66,11 @@ public class Enemy_Death : EnemyBaseState
 
         //그림자 없애야하고
         enemyFSM.m_goShadow.SetActive(false);
+    }
+
+    public override void OnAnimatorMove()
+    {
+        
     }
 
     public override void OnUpdateState()
@@ -81,7 +100,7 @@ public class Enemy_Death : EnemyBaseState
         int idx = Random.Range(0, enemyFSM.m_arrRigid.Length);
         enemyFSM.m_arrRigid[idx].AddForce(new Vector3(0, 200f, 300f), ForceMode.Impulse);
 
-        Debug.Log("공격받은 부위 : " + enemyFSM.m_arrRigid[idx].name);
+        //Debug.Log("공격받은 부위 : " + enemyFSM.m_arrRigid[idx].name);
 
         yield return new WaitForSeconds(1.5f);
 

@@ -11,6 +11,7 @@ using System;
 [CustomPropertyDrawer(typeof(DicEnemyFace))]
 [CustomPropertyDrawer(typeof(DicSlotInfo))]
 [CustomPropertyDrawer(typeof(DicStatUI))]
+[CustomPropertyDrawer(typeof(DicClassIdleAnimClip))]
 public class SerializableDictionaryPropertyDrawer : PropertyDrawer
 {
     const string KeysFieldName = "m_keys";

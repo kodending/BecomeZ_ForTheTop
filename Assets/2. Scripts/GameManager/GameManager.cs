@@ -1,4 +1,5 @@
 using Photon.Pun;
+using PlayFab.GroupsModels;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -29,6 +30,8 @@ public class GameManager : MonoBehaviourPunCallbacks
     public List<OrderInfo> m_listOrderInfo = new List<OrderInfo>();
     public List<EnemyFSM> m_listEnemyInfo = new List<EnemyFSM>();
     public List<InGamePlayerController> m_listPlayerInfo = new List<InGamePlayerController>();
+
+    public bool bReturnRoom = false;
 
     private void Awake()
     {
@@ -63,9 +66,28 @@ public class GameManager : MonoBehaviourPunCallbacks
 
     static public IEnumerator ChangeScene(string sceneName, GAMESTATE eState, float fWaitTime)
     {
+        yield return new WaitForSeconds(0.3f);
+
+        if (PhotonNetwork.IsMasterClient)
+            PhotonNetwork.DestroyAll();
+
+        PhotonNetwork.DestroyAll(true);
+
+        yield return null;
+
+        foreach (var pv in FindObjectsOfType<PhotonView>())
+            if (pv.ViewID < PhotonNetwork.MAX_VIEW_IDS && pv.ViewID != 1 && pv.ViewID != 2)
+                Destroy(pv.gameObject);
+        
+        if(PhotonNetwork.PrefabPool is PunPoolManager pool)
+        {
+            pool.ResetAll();
+        }
+
         yield return new WaitForSeconds(fWaitTime);
 
-        SceneManager.LoadScene(sceneName);
+        //SceneManager.LoadScene(sceneName);
+        PhotonNetwork.LoadLevel(sceneName);
         UIManager.StopSequence();
 
         yield return new WaitForSeconds(0.5f);

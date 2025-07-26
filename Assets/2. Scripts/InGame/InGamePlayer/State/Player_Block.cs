@@ -13,6 +13,11 @@ public class Player_Block : PlayerBaseState
         playerController.m_pv.RPC("AnimTriggerRPC", RpcTarget.All, "Block");
     }
 
+    public override void OnAnimatorMove()
+    {
+
+    }
+
     public override void OnUpdateState()
     {
 

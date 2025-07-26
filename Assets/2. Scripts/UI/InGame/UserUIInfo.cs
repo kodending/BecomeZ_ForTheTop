@@ -14,6 +14,7 @@ public class UserUIInfo : MonoBehaviourPunCallbacks
     public Slider sliderHp;
     public Slider sliderHpBack;
     public Slider sliderMp;
+    public Slider sliderMpBack;
     public Text curMaxHpText;
     public Text curMaxMpText;
     public Text curPhysicalPowText;

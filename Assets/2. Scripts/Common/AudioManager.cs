@@ -1,6 +1,7 @@
 using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -32,7 +33,7 @@ public class AudioManager : MonoBehaviourPunCallbacks
         bgmPlayer = bgmObject.AddComponent<AudioSource>();
         bgmPlayer.playOnAwake = false;
         bgmPlayer.loop = true;
-        bgmPlayer.volume = bgmVolume;
+        bgmPlayer.volume = PlayerPrefs.GetFloat("BGMVolume", 1f);
 
         bgmEffect = Camera.main.GetComponent<AudioHighPassFilter>();
 
@@ -46,11 +47,13 @@ public class AudioManager : MonoBehaviourPunCallbacks
             sfxPlayers[idx] = sfxObject.AddComponent<AudioSource>();
             sfxPlayers[idx].playOnAwake = false;
             sfxPlayers[idx].bypassListenerEffects = true;
-            sfxPlayers[idx].volume = sfxVolume;
+            sfxPlayers[idx].volume = PlayerPrefs.GetFloat("SFXVolume", 1f);
         }
     }
     static public void PlayBGM(BGM eBgm, bool isPlay)
     {
+        if (am.bgmPlayer.clip == am.bgmClips[(int)eBgm]) return;
+
         am.bgmPlayer.clip = am.bgmClips[(int)eBgm];
 
         if (isPlay) am.bgmPlayer.Play();
@@ -76,6 +79,25 @@ public class AudioManager : MonoBehaviourPunCallbacks
             am.sfxPlayers[loopIdx].clip = am.sfxClips[(int)eSfx];
             am.sfxPlayers[loopIdx].Play();
             break;
+        }
+    }
+
+    static public void SetMasterVolume(float volume)
+    {
+        SetBGMVolume(volume);
+        SetSFXVolume(volume);
+    }
+
+    static public void SetBGMVolume(float volume)
+    {
+        am.bgmPlayer.volume = volume;
+    }
+
+    static public void SetSFXVolume(float volume)
+    {
+        for (int idx = 0; idx < am.sfxPlayers.Length; idx++)
+        {
+            am.sfxPlayers[idx].volume = volume;
         }
     }
 }

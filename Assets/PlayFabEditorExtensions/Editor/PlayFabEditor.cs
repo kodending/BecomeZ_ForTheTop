@@ -78,18 +78,6 @@ namespace PlayFab.PfEditor
             PlayFabEditorPrefsSO.Instance.PanelIsShown = true;
         }
 
-        [MenuItem("Window/PlayFab/Forum")]
-        static void PlayFabForums()
-        {
-            Application.OpenURL("https://community.playfab.com/index.html");
-        }
-
-        [MenuItem("Window/PlayFab/Provide Feedback")]
-        static void PlayFabFeedback()
-        {
-            Application.OpenURL("https://community.playfab.com/index.html");
-        }
-
         [InitializeOnLoad]
         public static class Startup
         {
@@ -219,7 +207,7 @@ namespace PlayFab.PfEditor
                 using (new UnityHorizontal())
                 {
                     GUILayout.FlexibleSpace();
-                    if (GUILayout.Button("VIEW DOCUMENTATION ->", PlayFabEditorHelper.uiStyle.GetStyle("textButton")))
+                    if (GUILayout.Button("VIEW DOCUMENTATION", PlayFabEditorHelper.uiStyle.GetStyle("textButton")))
                     {
                         Application.OpenURL("https://github.com/PlayFab/UnityEditorExtensions");
                     }
@@ -229,7 +217,7 @@ namespace PlayFab.PfEditor
                 using (new UnityHorizontal())
                 {
                     GUILayout.FlexibleSpace();
-                    if (GUILayout.Button("REPORT ISSUES ->", PlayFabEditorHelper.uiStyle.GetStyle("textButton")))
+                    if (GUILayout.Button("REPORT ISSUES", PlayFabEditorHelper.uiStyle.GetStyle("textButton")))
                     {
                         Application.OpenURL("https://github.com/PlayFab/UnityEditorExtensions/issues");
                     }
@@ -241,7 +229,7 @@ namespace PlayFab.PfEditor
                     using (new UnityHorizontal())
                     {
                         GUILayout.FlexibleSpace();
-                        if (GUILayout.Button("UNINSTALL ", PlayFabEditorHelper.uiStyle.GetStyle("button")))
+                        if (GUILayout.Button("UNINSTALL ", PlayFabEditorHelper.uiStyle.GetStyle("textButton")))
                         {
                             RemoveEdEx();
                         }
@@ -374,7 +362,7 @@ namespace PlayFab.PfEditor
 
             if (DateTime.Today > threshold)
             {
-                PlayFabEditorHttp.MakeGitHubApiCall("https://api.github.com/repos/PlayFab/UnitySDK/git/refs/tags", (version) =>
+                PlayFabEditorHttp.MakeGitHubApiCall("https://api.github.com/repos/PlayFab/UnityEditorExtensions/git/refs/tags", (version) =>
                 {
                     latestEdExVersion = version ?? "Unknown";
                     PlayFabEditorPrefsSO.Instance.EdSet_latestEdExVersion = latestEdExVersion;
@@ -434,7 +422,7 @@ namespace PlayFab.PfEditor
 
         private static void ImportLatestEdEx()
         {
-            PlayFabEditorHttp.MakeDownloadCall("https://aka.ms/PlayFabUnityEdEx", (fileName) =>
+            PlayFabEditorHttp.MakeDownloadCall("https://api.playfab.com/sdks/download/unity-edex-upgrade", (fileName) =>
             {
                 AssetDatabase.ImportPackage(fileName, false);
                 Debug.Log("PlayFab EdEx Upgrade: Complete");

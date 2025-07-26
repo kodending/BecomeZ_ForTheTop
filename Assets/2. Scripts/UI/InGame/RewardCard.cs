@@ -22,6 +22,10 @@ public class RewardCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     public Text m_txtItemName;
     public Text[] m_arrTxtStats;
 
+    [SerializeField]
+    [Range(0f, 1f)]
+    float dragThresholdRatio = 0.1f;  // 화면 가로의 10%를 기준으로 설정
+
     public void OnBeginDrag(PointerEventData eventData)
     {
         clickDiffPos = Input.mousePosition - transform.position;
@@ -40,7 +44,9 @@ public class RewardCard : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDr
     {
         float distance = Vector2.Distance(parentAfterDrag.position, this.transform.position);
 
-        if(distance >= 250)
+        float threshold = Screen.width * dragThresholdRatio;
+
+        if(distance >= threshold)
         {
             UIManager.CardSelectEffect(this.gameObject);
 

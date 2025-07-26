@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using UnityEngine.UI;
+using DG.Tweening;
 
 public class UIManagerInLobby : MonoBehaviourPunCallbacks
 {
@@ -17,6 +18,12 @@ public class UIManagerInLobby : MonoBehaviourPunCallbacks
     [SerializeField] Text m_txtRefreshRoom;
 
     public LobbyRoomInfo[] m_arrLobbyRooms;
+
+    public CinemachineMoving cinemachineMoving;
+    public Transform m_newFollow;
+    public Transform m_newLookAt;
+    public Transform m_originFollow;
+    public Transform m_originLookAt;
 
     #region 号 持失鳶確
     [SerializeField] Image m_imgCreateRoomPanel;
@@ -45,6 +52,10 @@ public class UIManagerInLobby : MonoBehaviourPunCallbacks
         yield return new WaitForSeconds(1f);
 
         UIManager.FadeInOutText(m_txtLobby, 1f);
+
+        yield return new WaitForSeconds(1f);
+
+        cinemachineMoving.ChangeCameraTargetSmooth(m_originFollow, m_newFollow, m_originLookAt, m_newLookAt, 2f, Ease.InCubic);
 
         yield return new WaitForSeconds(2f);
 

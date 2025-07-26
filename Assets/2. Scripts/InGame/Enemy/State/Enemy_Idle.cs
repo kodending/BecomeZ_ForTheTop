@@ -12,6 +12,11 @@ public class Enemy_Idle : EnemyBaseState
         
     }
 
+    public override void OnAnimatorMove()
+    {
+
+    }
+
     public override void OnUpdateState()
     {
 

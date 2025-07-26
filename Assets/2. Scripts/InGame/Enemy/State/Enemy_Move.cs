@@ -13,6 +13,11 @@ public class Enemy_Move : EnemyBaseState
         enemyFSM.m_pv.RPC("DoMoveRPC", RpcTarget.All, enemyFSM.m_vMovePos, enemyFSM.m_fMoveTime, Ease.OutQuad);
     }
 
+    public override void OnAnimatorMove()
+    {
+
+    }
+
     public override void OnUpdateState()
     {
 

@@ -108,7 +108,7 @@ public class PunPoolManager : MonoBehaviourPunCallbacks, IPunPrefabPool
                     {
                         GameObject go = Instantiate(fab, position, rotation);
                         go.transform.SetParent(m_goInGameParent.transform);
-                        go.GetComponent<InGamePlayerController>().InitClassFormInfo();
+                        //go.GetComponent<InGamePlayerController>().InitClassFormInfo();
                         GameManager.gm.m_listPlayerInfo.Add(go.GetComponent<InGamePlayerController>());
                         go.SetActive(false);
                         return go;
@@ -162,7 +162,7 @@ public class PunPoolManager : MonoBehaviourPunCallbacks, IPunPrefabPool
                     {
                         GameObject go = Instantiate(fab, position, rotation);
                         go.transform.SetParent(m_goEnemyParent.transform);
-                        go.GetComponent<EnemyFSM>().InitFormInfo();
+                        //go.GetComponent<EnemyFSM>().InitFormInfo();
                         GameManager.gm.m_listEnemyInfo.Add(go.GetComponent<EnemyFSM>());
                         go.SetActive(false);
                         return go;
@@ -193,10 +193,10 @@ public class PunPoolManager : MonoBehaviourPunCallbacks, IPunPrefabPool
 
         if (gameObject.GetComponent<OrderInfo>() != null)
         {
+            GameManager.gm.m_listOrderInfo.Remove(gameObject.GetComponent<OrderInfo>());
             gameObject.SetActive(false);
             gameObject.transform.SetParent(this.transform);
             m_poolingInGameOrder.Enqueue(gameObject);
-            GameManager.gm.m_listOrderInfo.Remove(gameObject.GetComponent<OrderInfo>());
         }
 
         if (gameObject.GetComponent<EnemyFSM>() != null)
@@ -206,4 +206,29 @@ public class PunPoolManager : MonoBehaviourPunCallbacks, IPunPrefabPool
             GameManager.gm.m_listEnemyInfo.Remove(gameObject.GetComponent<EnemyFSM>());
         }
     }
+
+    public void ResetAll()
+    {
+        while(m_poolingInGameOrder.Count>0)
+        {
+            Object.Destroy(m_poolingInGameOrder.Dequeue());
+        }
+
+        while(m_poolingEnemies.Count >0)
+        {
+            Object.Destroy(m_poolingEnemies.Dequeue());
+            GameManager.gm.m_listEnemyInfo.Clear();
+        }
+
+        while(m_poolingInGamePlayer.Count > 0)
+        {
+            Object.Destroy(m_poolingInGamePlayer.Dequeue());
+        }
+
+        while (m_poolingLobbyPlayer.Count > 0)
+        {
+            Object.Destroy(m_poolingLobbyPlayer.Dequeue());
+        }
+    }
 }
+

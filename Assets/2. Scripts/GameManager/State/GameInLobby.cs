@@ -8,6 +8,9 @@ public class GameInLobby : BaseState
     {
         GameManager.m_curState = GAMESTATE.LOBBY;
         GameManager.m_curUI = GameObject.Find("UIManagerInLobby");
+
+
+        AudioManager.PlayBGM(BGM.LOBBY, true);
     }
 
     public override void OnUpdateState()

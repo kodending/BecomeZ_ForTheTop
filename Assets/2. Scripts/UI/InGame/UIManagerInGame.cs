@@ -3,6 +3,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -23,6 +24,8 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
     public Image[] m_arrEnemyAttackCheckImg;
     public Sprite[] m_arrAttackSuccFailSprite;
     public Image m_imgDarkFade;
+    public Text m_txtFloor;
+    [SerializeField] public Text m_txtNextWaiting;
 
     #region 결과 유아이 정리
     public GameObject m_goRewardPanel;
@@ -55,12 +58,19 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
     //선택된 아이템 정보 표시
     [SerializeField] Image m_imgSelectedItem;
     [SerializeField] Text m_txtSelectedItemInfo, m_txtSelectedItemName;
+    [SerializeField] GameObject m_goUnavailableText, m_goSelectButton;
+
+    public DamageTextSpawner damageTextSpawner;
 
     private void Start()
     {
         m_curInvenPage = 1;
         m_maxInvenPage = InvenManager.GetMaxPage();
 
+        //현재 층 확인하고 명칭 바꾸기
+        string strFloor = BattleManager.m_iCurFloor.ToString() + "층";
+        m_txtInGame.text = strFloor;
+        m_txtFloor.text = strFloor;
         UIManager.FadeInOutText(m_txtInGame, 1f);
 
         StartCoroutine(OnPanel());
@@ -90,17 +100,18 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
         UIManager.ShowScale(m_goGameInfoPanel);
         UIManager.ShowScale(m_goTimelineParent);
 
+        int playerIdx = GameManager.gm.m_listPlayerInfo.IndexOf(GameManager.gm.m_inGamePlayer);
+        GameManager.gm.m_inGamePlayer.RefreshInfo(playerIdx, true);
+
         if (PhotonNetwork.IsMasterClient)
         {
             NetworkManager.nm.PV.RPC("InitBattleTimelineRPC", RpcTarget.All);
         }
 
-        GameManager.gm.m_inGamePlayer.RefreshInfo();
-
         for(int i = 0; i < GameManager.gm.m_listEnemyInfo.Count; i++)
         {
             var enemy = GameManager.gm.m_listEnemyInfo[i];
-            RefreshEnemyHud(i, enemy.m_sCurStats);
+            RefreshEnemyHud(i, enemy.m_sCurStats, true);
         }
        
         yield return new WaitForSeconds(0.5f);
@@ -136,7 +147,7 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
 
         if (BattleManager.m_iCurSelectedSkill > listSkill.Count) BattleManager.m_iCurSelectedSkill = 0;
 
-        int idx = BattleManager.m_iCurSelectedSkill;
+        int skillIdx = BattleManager.m_iCurSelectedSkill;
 
         foreach(var suc in m_arrUserAttackCheckImg)
         {
@@ -144,7 +155,7 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
         }
 
         //상점 인덱스를 선택한거면
-        if(idx >= listSkill.Count)
+        if(skillIdx >= listSkill.Count)
         {
             //인벤토리 최신화
             RefreshInventory();
@@ -154,57 +165,241 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
             m_goBattleSelectPanel.transform.Find("InvenPanel").gameObject.SetActive(true);
 
             m_goBattleSelectComplete.SetActive(false);
+            m_goUnavailableText.SetActive(false);
         }
 
         //스킬 선택한 사항이면
         else
         {
+            //스킬이 사용가능한지 알아야됨.
+            bool bAvail = AvailableSkillCheck(listSkill[skillIdx]);
+
+            //사용가능하면 스킬 활성화
+            m_goUnavailableText.SetActive(!bAvail);
+
             m_goBattleSelectPanel.transform.Find("InfoPanel").gameObject.SetActive(true);
-            m_goBattleSelectComplete.SetActive(true);
+            m_goBattleSelectComplete.SetActive(bAvail);
             m_goBattleSelectPanel.transform.Find("InvenPanel").gameObject.SetActive(false);
 
-            for (int i = 0; i < listSkill[idx].iProbCnt; i++)
+            //이부분이 전달되어야됨(전체한테)
+            for (int i = 0; i < listSkill[skillIdx].iProbCnt; i++)
             {
                 m_arrUserAttackCheckImg[i].gameObject.SetActive(true);
             }
 
-            m_txtTitle.text = listSkill[idx].name;
+            //내 현재 스킬 인덱스를 다른사람들한테도 전파해야됨
+            NetworkManager.nm.PV.RPC("CheckSkillProbsRPC", RpcTarget.Others, listSkill[skillIdx].iProbCnt, true);
+            //*//
+            m_txtTitle.text = listSkill[skillIdx].name;
             int atkPow = 0;
 
-            switch ((ATTACKTYPE)listSkill[idx].iAttackType)
+            switch ((ATTACKRESULT)listSkill[skillIdx].iAttackType)
             {
-
-                case ATTACKTYPE.PHYSICAL_SINGLE:
+                case ATTACKRESULT.PHYSICAL_ATTACK:
                     m_txtTargetType.text = "물리 단일";
 
-                    atkPow = Mathf.RoundToInt(((float)GameManager.gm.m_inGamePlayer.m_sCurStats.Physical_POW * 5) * listSkill[idx].fAttackPow);
+                    int buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.PHYSICALPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Physical_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
                     m_txtAtkPow.text = atkPow.ToString();
                     m_txtAtkPow.color = Color.red;
+
+                    BattleManager.m_bSelectedAll = false;
                     break;
 
-                case ATTACKTYPE.MAGIC_SINGLE:
+                case ATTACKRESULT.MAGIC_ATTACK:
                     m_txtTargetType.text = "마법 단일";
 
-                    atkPow = Mathf.RoundToInt(((float)GameManager.gm.m_inGamePlayer.m_sCurStats.Magic_POW * 5) * listSkill[idx].fAttackPow);
+                    buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.MAGICPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Magic_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
                     m_txtAtkPow.text = atkPow.ToString();
                     m_txtAtkPow.color = Color.blue;
+
+                    BattleManager.m_bSelectedAll = false;
                     break;
 
-                case ATTACKTYPE.COMPLEX_SINGLE:
-                    m_txtTargetType.text = "복합 단일";
+                case ATTACKRESULT.PHYSICAL_PIERCING_ATTACK:
+                    m_txtTargetType.text = "물리 관통";
+
+                    buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.PHYSICALPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Physical_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
+                    m_txtAtkPow.text = atkPow.ToString();
+                    m_txtAtkPow.color = Color.red;
+
+                    BattleManager.m_bSelectedAll = false;
+                    break;
+
+                case ATTACKRESULT.MAGIC_PIERCING_ATTACK:
+                    m_txtTargetType.text = "마법 관통";
+
+                    buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.MAGICPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Magic_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
+                    m_txtAtkPow.text = atkPow.ToString();
+                    m_txtAtkPow.color = Color.blue;
+
+                    BattleManager.m_bSelectedAll = false;
+
+                    break;
+
+                case ATTACKRESULT.PHYSICAL_AREA_ATTACK:
+                    m_txtTargetType.text = "물리 범위";
+
+                    buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.PHYSICALPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Physical_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
+                    m_txtAtkPow.text = atkPow.ToString();
+                    m_txtAtkPow.color = Color.red;
+
+                    BattleManager.m_bSelectedAll = true;
+                    break;
+
+                case ATTACKRESULT.MAGIC_AREA_ATTACK:
+                    m_txtTargetType.text = "마법 범위";
+
+                    buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.MAGICPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Magic_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
+                    m_txtAtkPow.text = atkPow.ToString();
+                    m_txtAtkPow.color = Color.blue;
+
+                    BattleManager.m_bSelectedAll = true;
+                    break;
+
+                case ATTACKRESULT.SHIELD_SOLO_STRIKE:
+                    m_txtTargetType.text = "기절 단일";
+
+                    buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.PHYSICALPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Physical_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
+                    m_txtAtkPow.text = atkPow.ToString();
+                    m_txtAtkPow.color = Color.red;
+
+                    BattleManager.m_bSelectedAll = false;
+                    break;
+
+                case ATTACKRESULT.SHIELD_AREA_STRIKE:
+                    m_txtTargetType.text = "기절 범위";
+
+                    buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.PHYSICALPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Physical_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
+                    m_txtAtkPow.text = atkPow.ToString();
+                    m_txtAtkPow.color = Color.red;
+
+                    BattleManager.m_bSelectedAll = true;
+                    break;
+
+                case ATTACKRESULT.PHYSICAL_DEF_DEBUFF_SOLO:
+                    m_txtTargetType.text = "물리방어력 감소";
+
+                    buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.PHYSICALPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Physical_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
+                    m_txtAtkPow.text = atkPow.ToString();
+                    m_txtAtkPow.color = Color.red;
+
+                    BattleManager.m_bSelectedAll = false;
+                    break;
+
+                case ATTACKRESULT.MAGIC_DEF_DEBUFF_SOLO:
+                    m_txtTargetType.text = "마법방어력 감소";
+
+                    buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.MAGICPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Magic_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
+                    m_txtAtkPow.text = atkPow.ToString();
+                    m_txtAtkPow.color = Color.blue;
+
+                    BattleManager.m_bSelectedAll = false;
+
+                    break;
+
+                case ATTACKRESULT.PHYSICAL_ATK_DEBUFF_SOLO:
+                    m_txtTargetType.text = "물리공격력 감소";
+
+                    buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.PHYSICALPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Physical_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
+                    m_txtAtkPow.text = atkPow.ToString();
+                    m_txtAtkPow.color = Color.red;
+                    BattleManager.m_bSelectedAll = false;
+                    break;
+
+                case ATTACKRESULT.MAGIC_ATK_DEBUFF_SOLO:
+                    m_txtTargetType.text = "마법공격력 감소";
+
+                    buffAtk = Mathf.RoundToInt(GameManager.gm.m_inGamePlayer.m_buffManager.GetBufferdStatus(STATTYPE.MAGICPOWER, GameManager.gm.m_inGamePlayer.m_sCurStats.Magic_POW));
+
+                    atkPow = Mathf.RoundToInt(buffAtk * listSkill[skillIdx].fAttackPow) * (int)CONVERT_STATS.ATK;
+                    m_txtAtkPow.text = atkPow.ToString();
+                    m_txtAtkPow.color = Color.blue;
+                    BattleManager.m_bSelectedAll = false;
                     break;
             }
 
-            m_txtAtkProb.text = (listSkill[idx].fAttackProb * 100).ToString() +
+            //셀렉
+            var enemy = GameManager.gm.m_listEnemyInfo.Find(b => b.m_bSelected == true);
+
+            if (enemy != null)
+            {
+                BattleManager.SelectEnemy(GameManager.gm.m_listEnemyInfo.IndexOf(enemy), enemy.gameObject);
+            }
+
+            m_txtAtkProb.text = (listSkill[skillIdx].fAttackProb * 100).ToString() +
                 "%";
 
-            m_txtConsumeMp.text = listSkill[idx].iConsumeMp.ToString() + " 소모";
+            m_txtConsumeMp.text = listSkill[skillIdx].iConsumeMp.ToString() + " 소모";
         }
 
 
         m_goBattleSelectPanel.SetActive(true);
         //m_goBattleSelectComplete.SetActive(true);
         m_goUserAttackSuccessPanel.SetActive(true);
+    }
+
+    bool AvailableSkillCheck(SKILLINFO skill)
+    {
+        Debug.Log("보여지는 스킬 이름 : " + skill.engName);
+        //체크체크 (99는 공용)
+        if (skill.listAvailClasses.Contains(GameManager.gm.m_inGamePlayer.m_classIdx.ToString()) ||
+            skill.listAvailClasses.Contains(99.ToString()))
+        {
+            return true;
+        }
+
+        else return false;
+    }
+
+    public void CheckSkillProbs(int probCnt, bool bUser)
+    {
+        if(bUser)
+        {
+            foreach (var suc in m_arrUserAttackCheckImg)
+            {
+                suc.gameObject.SetActive(false);
+            }
+
+            for (int i = 0; i < probCnt; i++)
+            {
+                m_arrUserAttackCheckImg[i].gameObject.SetActive(true);
+            }
+        }
+
+        else
+        {
+            foreach (var suc in m_arrEnemyAttackCheckImg)
+            {
+                suc.gameObject.SetActive(false);
+            }
+
+            for (int i = 0; i < probCnt; i++)
+            {
+                m_arrEnemyAttackCheckImg[i].gameObject.SetActive(true);
+            }
+        }
     }
 
     public void OnClickNextSkill()
@@ -247,23 +442,41 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
             return;
         }
 
-        Debug.Log("선택 완료");
+        InGamePlayerController player = BattleManager.m_listBattleTimelineInfo[0].go.GetComponent<InGamePlayerController>();
+
+        var skill = GameManager.gm.m_inGamePlayer.m_sCurStats.listSkills[BattleManager.m_iCurSelectedSkill];
+
+        //플레이어 마나 깎기
+        int mp = player.m_sCurStats.curMp;
+
+        if(mp - skill.iConsumeMp < 0)
+        {
+            UIManager.SystemMsg("마나가 부족합니다.");
+            return;
+        }
+
+        //int playerIdx = GameManager.gm.m_listPlayerInfo.IndexOf(player);
+
+        int playerIdx = 0;
+
+        foreach (var p in GameManager.gm.m_listPlayerInfo)
+        {
+            if (p.m_pv.Owner.NickName == player.m_pv.Owner.NickName)
+            {
+                playerIdx = GameManager.gm.m_listPlayerInfo.IndexOf(p);
+                break;
+            }
+        }
+
+        player.ConsumeMP(skill.iConsumeMp, playerIdx);
 
         m_goBattleSelectComplete.SetActive(false);
         m_goBattleSelectPanel.SetActive(false);
 
-        InGamePlayerController player = BattleManager.m_listBattleTimelineInfo[0].go.GetComponent<InGamePlayerController>();
-
         player.m_listAtkSuccess.Clear();
-
-        var skill = GameManager.gm.m_inGamePlayer.m_sCurStats.listSkills[BattleManager.m_iCurSelectedSkill];
 
         //플레이어가 어떤 공격을 선택했는지를 알아야됨
         //공격정보를 담을게 필요함.
-
-        //int attackCheckTime = BattleManager.m_listBattleTimelineInfo[0].go.GetComponent<InGamePlayerController>().m_sCurStats.횟수;
-
-        //int attackCheckTime = BattleManager.m_listBattleTimelineInfo[0].go.GetComponent<InGamePlayerController>().m_sCurStats.확률;
 
         int attackCheckTime = skill.iProbCnt;
 
@@ -272,8 +485,18 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
 
         for (int i = 0; i < attackCheckTime; i++)
         {
+            //성공여부도 체크 Penets 사용도 확인해야됨
+
             listAttackProbs.Add(skill.fAttackProb);
             listPenets.Add(false);
+        }
+
+        BattleManager.m_bSelectedAll = false;
+        var enemyInfo = GameManager.gm.m_listEnemyInfo.Find(b => b.m_bSelected == true);
+
+        if (enemyInfo != null)
+        {
+            BattleManager.SelectEnemy(GameManager.gm.m_listEnemyInfo.IndexOf(enemyInfo), enemyInfo.gameObject);
         }
 
         //배틀상태 배틀로 넘긴다
@@ -299,7 +522,7 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
 
         iTime -= 1;
 
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(0.35f);
         StartCoroutine(OnUserAttackAccCheck(iTime, listAttackProbs, listPenets, player));
     }
 
@@ -346,16 +569,36 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
 
         enemy.m_selectedPlayer = GameManager.gm.m_listPlayerInfo[idx];
 
+        m_goBattleSelectComplete.SetActive(false);
+        m_goBattleSelectPanel.SetActive(false);
+
         enemy.m_listAtkSuccess.Clear();
 
-        int attackCheckTime = 6;
+        foreach (var suc in m_arrEnemyAttackCheckImg)
+        {
+            suc.gameObject.SetActive(false);
+        }
+
+        //에너미 공격 스킬 설정
+        enemy.m_sSelectedSkill = enemy.PickSkill(enemy.m_sCurStats.listSkills);
+
+        int attackCheckTime = enemy.m_sSelectedSkill.iProbCnt;
+
+        //이게 전체 전파되어야함
+        for (int i = 0; i < attackCheckTime; i++)
+        {
+            m_arrEnemyAttackCheckImg[i].gameObject.SetActive(true);
+        }
+
+        NetworkManager.nm.PV.RPC("CheckSkillProbsRPC", RpcTarget.Others, attackCheckTime, false);
 
         List<float> listAttackProbs = new List<float>();
         List<bool> listPenets = new List<bool>();
 
         for (int i = 0; i < attackCheckTime; i++)
         {
-            listAttackProbs.Add(0.5f);
+            //성공확률도 데이터에따라 적용시킨다.
+            listAttackProbs.Add(enemy.m_sSelectedSkill.fAttackProb);
             listPenets.Add(false);
         }
 
@@ -382,7 +625,7 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
 
         iTime -= 1;
 
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(0.35f);
         StartCoroutine(OnEnemyAttackAccCheck(iTime, listAttackProbs, listPenets, enemy));
     }
 
@@ -513,13 +756,76 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
         RefreshInventory();
     }
 
+    public void OnClickUseSelectedItem()
+    {
+        //선택된 소모품 정보를 알아야하고
+        var invenSlot = GetSelectedBattleInven();
+        ITEMINFO item = new ITEMINFO();
+        if (invenSlot != null) item = invenSlot.m_item;
+
+        int invenIdx = GetSelectedBattleInvenIndex();
+
+        if (invenSlot.m_item.iType != (int)CONSUMETYPE.MP_POTION && invenSlot.m_item.iType != (int)CONSUMETYPE.HP_POTION)
+        {
+            UIManager.SystemMsg("소모품(포션)만 사용 가능합니다");
+            return;
+        }
+
+        //플레이어안에서 해결하도록 함.
+        //[과제]
+        //얘만의 사용로직을 만들어야됨.
+        StartCoroutine(GameManager.gm.m_inGamePlayer.UseConsumeItem(invenIdx, item, true));
+    }
+
+    int GetSelectedBattleInvenIndex()
+    {
+        int index = 0;
+
+        for (; index < m_listBattleInvenSlot.Count; index++)
+        {
+            if (m_listBattleInvenSlot[index].IsSelected()) break;
+        }
+
+        return index;
+    }
+
+    BattleSlotInfo GetSelectedBattleInven()
+    {
+        BattleSlotInfo slot = null;
+
+        for (int i = 0; i < m_listBattleInvenSlot.Count; i++)
+        {
+            if (m_listBattleInvenSlot[i].IsSelected())
+            {
+                slot = m_listBattleInvenSlot[i];
+                break;
+            }
+        }
+
+        return slot;
+    }
+
+    public void InitBattleInventory()
+    {
+        m_imgSelectedItem.gameObject.SetActive(false);
+        m_txtSelectedItemInfo.gameObject.SetActive(false);
+        m_txtSelectedItemName.gameObject.SetActive(false);
+
+        foreach(var slot in m_listBattleInvenSlot)
+        {
+            slot.DeselectSlot();
+        }
+
+        GameManager.m_curUI.GetComponent<UIManagerInGame>().ActvieBattleItemButton(false);
+    }
+
     #endregion
 
-    public void RefreshUserHud(int userIdx, CLASSSTATS sInfo)
+    public void RefreshUserHud(int userIdx, CLASSSTATS sInfo, bool bInit)
     {
         var ui = m_arrUserInfo[userIdx];
 
-        if(!ui.gameObject.activeSelf)
+        if(!ui.gameObject.activeSelf && bInit)
             UIManager.ShowScale(ui.gameObject);
 
         for (int i = 0; i < sInfo.INSIGHT; i++)
@@ -537,30 +843,31 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
         ui.curHpText.text = sInfo.curHp.ToString();
         ui.curMaxHpText.text = sInfo.curHp.ToString() + " / " + sInfo.maxHp.ToString();
         ui.curMaxMpText.text = sInfo.curMp.ToString() + " / " + sInfo.maxMp.ToString();
-        ui.curPhysicalPowText.text = sInfo.Physical_POW.ToString();
-        ui.curMagicPowText.text = sInfo.Magic_POW.ToString();
-        ui.curPhysicalDefText.text = sInfo.Physical_DEF.ToString();
-        ui.curMagicDefText.text = sInfo.Magic_DEF.ToString();
+        ui.curPhysicalPowText.text = (sInfo.Physical_POW * (int)CONVERT_STATS.ATK).ToString();
+        ui.curMagicPowText.text = (sInfo.Magic_POW * (int)CONVERT_STATS.ATK).ToString();
+        ui.curPhysicalDefText.text = (sInfo.Physical_DEF * (int)CONVERT_STATS.DEF).ToString();
+        ui.curMagicDefText.text = (sInfo.Magic_DEF * (int)CONVERT_STATS.DEF).ToString();
         ui.curSpeedText.text = sInfo.SPD.ToString();
 
         ui.sliderHp.value = (float)sInfo.curHp / (float)sInfo.maxHp;
         ui.sliderHpBack.value = ui.sliderHp.value;
 
         ui.sliderMp.value = (float)sInfo.curMp / (float)sInfo.maxMp;
+        ui.sliderMpBack.value = ui.sliderMp.value;
 
     }
 
-    public void RefreshEnemyHud(int enemyIdx, ENEMYSTATS sInfo)
+    public void RefreshEnemyHud(int enemyIdx, ENEMYSTATS sInfo, bool bInit)
     {
         var ui = m_arrEnemyInfo[enemyIdx];
 
-        if (!ui.gameObject.activeSelf)
+        if (!ui.gameObject.activeSelf && bInit)
             UIManager.ShowScale(ui.gameObject);
 
         ui.name.text = sInfo.name;
         ui.curHpText.text = sInfo.curHp.ToString();
-        ui.curPhysicalDefText.text = sInfo.Physical_DEF.ToString();
-        ui.curMagicDefText.text = sInfo.Magic_DEF.ToString();
+        ui.curPhysicalDefText.text = (sInfo.Physical_DEF * (int)CONVERT_STATS.DEF).ToString();
+        ui.curMagicDefText.text = (sInfo.Magic_DEF * (int)CONVERT_STATS.DEF).ToString();
 
         ui.sliderHp.value = (float)sInfo.curHp / (float)sInfo.maxHp;
     }
@@ -576,8 +883,23 @@ public class UIManagerInGame : MonoBehaviourPunCallbacks
         UIManager.FadeInOutText(m_txtVictory.transform.Find("Text").GetComponent<Text>(), 2f);
     }
 
-    public void ShowDefeat()
+    public IEnumerator ShowDefeat()
     {
+        foreach (var ui in m_arrUserInfo)
+        {
+            ui.gameObject.SetActive(false);
+        }
 
+        UIManager.FadeInOutText(m_txtDefeat, 2f);
+        UIManager.FadeInOutText(m_txtDefeat.transform.Find("Text").GetComponent<Text>(), 2f);
+
+        yield return new WaitForSeconds(2f);
+
+        UIManager.FadeInImage(m_imgDarkFade, 1f);
+
+        yield return new WaitForSeconds(1f);
+
+        GameManager.gm.bReturnRoom = true;
+        UIManager.um.StartCoroutine(GameManager.ChangeScene("WaitingRoomScene", GAMESTATE.WAITROOM, 2f));
     }
 }

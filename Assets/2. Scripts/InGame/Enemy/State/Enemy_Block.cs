@@ -12,6 +12,11 @@ public class Enemy_Block : EnemyBaseState
         enemyFSM.m_pv.RPC("AnimTriggerRPC", RpcTarget.All, "Block");
     }
 
+    public override void OnAnimatorMove()
+    {
+
+    }
+
     public override void OnUpdateState()
     {
 

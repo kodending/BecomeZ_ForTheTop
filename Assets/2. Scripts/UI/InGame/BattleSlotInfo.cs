@@ -13,8 +13,9 @@ public class BattleSlotInfo : MonoBehaviour
 
     public void OnClickSelectSlot()
     {
-        isSelected = true;
         GameManager.m_curUI.GetComponent<UIManagerInGame>().DeselectInvenSlots();
+
+        isSelected = true;
 
         UIManager.SelectSlot(m_goSelected);
 

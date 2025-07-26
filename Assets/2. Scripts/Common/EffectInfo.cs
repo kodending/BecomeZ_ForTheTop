@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using DG.Tweening;
+using DG.Tweening.Core.Easing;
 using UnityEngine;
 
 public class EffectInfo : MonoBehaviour
@@ -13,7 +15,7 @@ public class EffectInfo : MonoBehaviour
     public bool m_bPlayer;
 
     //이펙트 주인이 누군지알아야하고
-    public GameObject m_goOwner;
+    public Vector3 m_vOwner;
 
     //목표를 추적하는건지 알아야 하고
     public bool m_bHoming;
@@ -23,40 +25,47 @@ public class EffectInfo : MonoBehaviour
     public int m_keepTime = 0;
 
     //누구한테 붙은 이펙트인지 알아야 됨.
-    public GameObject m_goTarget;
+    public Vector3 m_vTarget;
 
     //타이머 있어야하고
-    //public float m_fTimer;
+    public float m_fTimer;
 
     //남은 타이머시간 알아야하고
-    //public float m_fTimerForLim;
+    public float m_fTimerForLim;
 
     //현재 이펙트가 무엇인지 알아야하고
     public GameObject m_goCurEffObj;
 
 
-    private void FixedUpdate()
-    {
-        EffectMove();
-    }
+    //private void FixedUpdate()
+    //{
+    //    EffectMove();
+    //}
 
     //public void SetEffectObj(EFFECTTYPE eType, GameObject goOwner, Vector3 vPos, bool bHoming, float fTimer)
 
-    public void SetEffectObj(EFFECTTYPE eType, GameObject goOwner, GameObject goTarget, bool bHoming, float fTimer)
+    public void SetEffectObj(EFFECTTYPE eType, Vector3 vOwner, Vector3 vTarget, bool bHoming, float fTimer)
     {
         m_eEffectType = eType;
-        m_goOwner = goOwner;
+        m_vOwner = vOwner;
         m_bHoming = bHoming;
-        m_goTarget = goTarget;
-        //m_fTimerForLim = fTimer;
-        //m_fTimer = 0;
+        m_vTarget = vTarget;
+        m_fTimerForLim = fTimer;
+        m_fTimer = 0;
 
-        if(m_goTarget != null)
+        if(m_vTarget != null)
         {
-            transform.position = m_goTarget.transform.position;
+            Vector3 pos = m_vTarget;
+            m_vTarget = pos;
+            transform.position = m_vOwner;
         }
 
         SetInit();
+
+        StartCoroutine(EffectTimer(m_fTimerForLim));
+
+        if (bHoming) StartCoroutine(EffectMoveTarget());
+        else transform.position = m_vTarget;
     }
 
     public void SetInit()
@@ -67,13 +76,15 @@ public class EffectInfo : MonoBehaviour
         gameObject.SetActive(true);
     }
 
-    public void EffectMove()
+    IEnumerator EffectMoveTarget()
     {
-        if (m_goTarget == null) return;
+        yield return transform.DOMove(m_vTarget, m_fTimerForLim).SetEase(Ease.Linear); //등속 운동
+    }
 
-        if(m_bHoming)
-        {
-            transform.position = m_goTarget.transform.position;
-        }
+    IEnumerator EffectTimer(float fTimerLim)
+    {
+        yield return new WaitForSeconds(fTimerLim);
+
+        EffectManager.ReturnEffObj(gameObject);
     }
 }

@@ -13,13 +13,15 @@ public class Enemy_AttackMove : EnemyBaseState
         //Debug.Log("나 전투이동중");
         enemyFSM.m_pv.RPC("AnimTriggerRPC", RpcTarget.All, "AttackMove");
 
-        //int idx = Random.Range(0, GameManager.gm.m_listPlayerInfo.Count);
-        ////누굴 선택할지 정해야됨
-        //var newPos = GameManager.gm.m_listPlayerInfo[idx].transform.position + new Vector3(0, 0, +2f);
-        var newPos = enemyFSM.m_selectedPlayer.transform.position + new Vector3(0, 0, +2f);
-        //enemyFSM.transform.DOMove(newPos, 1.4f).SetEase(Ease.OutQuad);
+        
+        var newPos = enemyFSM.m_selectedPlayer.transform.position + new Vector3(0, 0, +1.7f);
         enemyFSM.m_pv.RPC("DoMoveRPC", RpcTarget.All, newPos, 1.4f, Ease.OutQuad);
         enemyFSM.StartCoroutine(ChangeAttack());
+    }
+
+    public override void OnAnimatorMove()
+    {
+
     }
 
     public override void OnUpdateState()
@@ -41,6 +43,6 @@ public class Enemy_AttackMove : EnemyBaseState
     {
         yield return new WaitForSeconds(1.4f);
 
-        enemyFSM.m_stateMachine.ChangeState(ENEMYSTATE.ATTACK);
+        enemyFSM.m_stateMachine.ChangeState(ENEMYSTATE.MELEE_ATTACK);
     }
 }

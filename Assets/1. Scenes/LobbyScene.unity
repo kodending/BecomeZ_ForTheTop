@@ -551,6 +551,7 @@ GameObject:
   m_Component:
   - component: {fileID: 154213225}
   - component: {fileID: 154213226}
+  - component: {fileID: 154213227}
   m_Layer: 0
   m_Name: UIManagerInLobby
   m_TagString: Untagged
@@ -598,6 +599,11 @@ MonoBehaviour:
   - {fileID: 2137997898}
   - {fileID: 1016257826}
   - {fileID: 1614472297}
+  cinemachineMoving: {fileID: 154213227}
+  m_newFollow: {fileID: 277823120}
+  m_newLookAt: {fileID: 72769883}
+  m_originFollow: {fileID: 1295269263}
+  m_originLookAt: {fileID: 1492788426}
   m_imgCreateRoomPanel: {fileID: 15906788}
   m_inputRoomName: {fileID: 1891688626}
   m_inputPassword: {fileID: 1677053871}
@@ -606,6 +612,20 @@ MonoBehaviour:
   m_imgJoinPasswordPanel: {fileID: 356807725}
   m_inputJoinPassword: {fileID: 1103986588}
   m_curSelectLobbyRoomInfo: {fileID: 0}
+--- !u!114 &154213227
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 154213224}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f58c26b0ee9d18449c45fcf2d020c10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  virtualCam: {fileID: 495880702}
+  brain: {fileID: 963194229}
 --- !u!1 &192209076
 GameObject:
   m_ObjectHideFlags: 0
@@ -3459,7 +3479,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1295269263}
-  - component: {fileID: 1295269264}
   m_Layer: 0
   m_Name: FollowPos
   m_TagString: Untagged
@@ -3482,21 +3501,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1295269264
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1295269262}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ba5de95de2e853140973d77e4f83897c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_trMoveTarget: {fileID: 277823120}
-  m_fWaitTime: 2
-  m_fMoveTime: 1
 --- !u!1 &1296435848
 GameObject:
   m_ObjectHideFlags: 0
@@ -4097,7 +4101,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1492788426}
-  - component: {fileID: 1492788427}
   m_Layer: 0
   m_Name: LookAtPos
   m_TagString: Untagged
@@ -4120,21 +4123,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1492788427
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1492788425}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ba5de95de2e853140973d77e4f83897c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_trMoveTarget: {fileID: 72769883}
-  m_fWaitTime: 2
-  m_fMoveTime: 1
 --- !u!1 &1511444906
 GameObject:
   m_ObjectHideFlags: 0

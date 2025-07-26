@@ -14,6 +14,10 @@ public class GameInGame : BaseState
 
         GameObject inGamePlayer = PhotonNetwork.Instantiate("INGAMEPLAYER_1", pos, Quaternion.identity);
         inGamePlayer.GetComponent<InGamePlayerController>().InitInfo();
+
+        //지금 나온 인게임플레이어를 배틀정보리스트에 넣어야한다. 다 전파해야한다.
+        int classIdx = inGamePlayer.GetComponent<InGamePlayerController>().m_classIdx;
+        inGamePlayer.GetComponent<InGamePlayerController>().m_pv.RPC("AddBattleListRPC", RpcTarget.Others, classIdx);
         inGamePlayer.SetActive(true);
     }
 

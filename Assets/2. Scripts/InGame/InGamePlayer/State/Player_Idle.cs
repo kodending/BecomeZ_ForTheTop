@@ -13,6 +13,11 @@ public class Player_Idle : PlayerBaseState
         //Debug.Log("³ª ¸ØÃç¼¹´Ù");
     }
 
+    public override void OnAnimatorMove()
+    {
+
+    }
+
     public override void OnUpdateState()
     {
         if(!playerController.m_agent.pathPending && playerController.m_agent.remainingDistance > 0)

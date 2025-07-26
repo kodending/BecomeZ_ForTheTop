@@ -26,6 +26,8 @@ public abstract class PlayerBaseState : MonoBehaviourPunCallbacks
     }
 
     public abstract void OnEnterState();
+
+    public abstract void OnAnimatorMove();
     public abstract void OnUpdateState();
     public abstract void OnFixedUpdateState();
     public abstract void OnExitState();
@@ -42,6 +44,7 @@ public abstract class EnemyBaseState : MonoBehaviourPunCallbacks
     }
 
     public abstract void OnEnterState();
+    public abstract void OnAnimatorMove();
     public abstract void OnUpdateState();
     public abstract void OnFixedUpdateState();
     public abstract void OnExitState();

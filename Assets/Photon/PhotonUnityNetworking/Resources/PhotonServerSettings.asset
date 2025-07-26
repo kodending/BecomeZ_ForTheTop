@@ -34,43 +34,58 @@ MonoBehaviour:
   RunInBackground: 1
   StartInOfflineMode: 0
   RpcList:
-  - ClickRpc
-  - DestroyRpc
-  - DestroySpaceship
-  - Fire
-  - RespawnSpaceship
-  - SendChatRPC
-  - ChangeForm
-  - ClearForm
-  - GameStart
-  - InitInfo
-  - ActiveObj
-  - InitEnemyInfo
-  - InitBattleTimelineRPC
   - AnimBoolRPC
   - AnimFloatRPC
   - AnimTriggerRPC
-  - DoMoveRPC
-  - RefreshBattleTimelineRPC
-  - DestroyOrderInfoRPC
-  - UserInfoRPC
-  - UIInfoRefreshRPC
-  - RefreshUserInfoRPC
-  - RefreshUIInfo
-  - AttackCalHudRPC
-  - InitAttackCalHudRPC
-  - AttackHitRPC
-  - DoFrontMoveRPC
-  - DoBackMoveRPC
-  - AttackDamageUI
-  - EnemyAttackCalHudRPC
-  - EnemyAttackDamageUI
-  - InitEnemyAttackCalHudRPC
-  - InitUserAttackCalHudRPC
-  - UserAttackCalHudRPC
-  - UserAttackDamageUI
   - AttackBlockRPC
   - AttackDodgeRPC
+  - AttackHitRPC
+  - ClearForm
+  - ClickRpc
+  - DestroyOrderInfoRPC
+  - DestroyRpc
+  - DestroySpaceship
+  - DoMoveRPC
+  - EnemyAttackCalHudRPC
+  - EnemyAttackDamageUI
+  - Fire
+  - GameStart
+  - InitBattleTimelineRPC
+  - InitEnemyAttackCalHudRPC
+  - InitEnemyInfo
+  - InitInfo
+  - InitUserAttackCalHudRPC
+  - RefreshBattleTimelineRPC
+  - RefreshUserInfoRPC
+  - RespawnSpaceship
+  - SendChatRPC
+  - UserAttackCalHudRPC
+  - UserAttackDamageUI
+  - ConsumeMP
+  - ConsumeMPRPC
+  - RestoreRPC
+  - BattleFaintTimelineRPC
+  - CheckSkillProbsRPC
+  - RewardTimePRC
+  - ControlWaitingNext
+  - ControlWaitingNextRPC
+  - GoNextFloor
+  - GoNextFloorRPC
+  - PlayEffect
+  - AddBattleList
+  - OnBattleSelectEnemy
+  - RefreshStatsRPC
+  - AddBattleListRPC
+  - SaveUserInfoRPC
+  - UseConsumeItem
+  - ApplyBuffRPC
+  - RefreshInfoRPC
+  - TickTurnRPC
+  - BattleTimelineSetRPC
+  - ReceiveItemRPC
+  - ReturnRoom
+  - ReturnRoomRPC
+  - ClearUserInfoRPC
   DisableAutoOpenWizard: 1
   ShowSettings: 1
   DevRegionSetOnce: 1

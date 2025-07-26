@@ -6,8 +6,7 @@ using PlayFab.ClientModels;
 using Photon.Pun;
 using Photon.Realtime;
 using Hashtable = ExitGames.Client.Photon.Hashtable;
-using System.Collections.Specialized;
-using Unity.VisualScripting;
+using System.Linq;
 
 public class NetworkManager : MonoBehaviourPunCallbacks
 {
@@ -267,9 +266,17 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     [PunRPC]
     public void RefreshBattleTimelineRPC()
     {
+        //if(PhotonNetwork.IsMasterClient)
+        //    PhotonNetwork.Destroy(GameManager.gm.m_listOrderInfo[0].gameObject);
         BattleManager.m_listBattleTimelineInfo.RemoveAt(0);
         BattleManager.RefreshTimeline();
         BattleManager.bm.m_stateMachine.ChangeState(BATTLESTATE.SELECT);
+    }
+
+    [PunRPC]
+    public void BattleFaintTimelineRPC(int targetIdx, bool isUser)
+    {
+        BattleManager.FaintingTarget(targetIdx, isUser);
     }
     #endregion
 
@@ -295,16 +302,20 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     }
 
     [PunRPC]
+    public void CheckSkillProbsRPC(int probCnt, bool bUser) //성공여부 동기화 시켜놓기
+    {
+        GameManager.m_curUI.GetComponent<UIManagerInGame>().CheckSkillProbs(probCnt, bUser);
+    }
+
+    [PunRPC]
     public void UserAttackDamageUI(int damage, int enemyIdx, int atkResult)
     {
-        GameManager.m_curUI.GetComponent<UIManagerInGame>().m_arrEnemyCanvas[enemyIdx].OnDamage(damage, atkResult);
+        //GameManager.m_curUI.GetComponent<UIManagerInGame>().m_arrEnemyCanvas[enemyIdx].OnDamage(damage, atkResult);
+        
+        Canvas worldCanvas = GameManager.m_curUI.GetComponent<UIManagerInGame>().m_arrEnemyCanvas[enemyIdx].GetComponent<Canvas>();
+        Vector3 targetPos = worldCanvas.transform.position + new Vector3(0, 0.5f, 0);
 
-        //VFX도 여기서 띄우자.
-        //이펙트가
-        //에너미 한테 직접 터지는게 있을거고
-        //이동하는 오브젝트가 있을것이고
-        //플레이어 주변에 생기는 이펙트도 있을것이다.
-        //이걸 구분할 수 있어야 한다.
+        GameManager.m_curUI.GetComponent<UIManagerInGame>().damageTextSpawner.ShowDamage(worldCanvas, targetPos, damage, atkResult);
     }
 
     [PunRPC]
@@ -322,7 +333,86 @@ public class NetworkManager : MonoBehaviourPunCallbacks
     [PunRPC]
     public void EnemyAttackDamageUI(int damage, int playerIdx, int atkResult)
     {
-        GameManager.m_curUI.GetComponent<UIManagerInGame>().m_arrUserCanvas[playerIdx].OnDamage(damage, atkResult);
+        //GameManager.m_curUI.GetComponent<UIManagerInGame>().m_arrUserCanvas[playerIdx].OnDamage(damage, atkResult);
+
+        Canvas worldCanvas = GameManager.m_curUI.GetComponent<UIManagerInGame>().m_arrUserCanvas[playerIdx].GetComponent<Canvas>();
+        Vector3 targetPos = worldCanvas.transform.position + new Vector3(0, 0.5f, 0);
+
+        GameManager.m_curUI.GetComponent<UIManagerInGame>().damageTextSpawner.ShowDamage(worldCanvas, targetPos, damage, atkResult);
+    }
+
+    [PunRPC]
+    public void RewardTimePRC()
+    {
+        BattleManager.RewardCheckTime();
+    }
+
+    public void GoNextFloor()
+    {
+        PV.RPC("GoNextFloorRPC", RpcTarget.All);
+    }
+
+    [PunRPC]
+    void GoNextFloorRPC()
+    {
+        UIManager.FadeOutText(GameManager.m_curUI.GetComponent<UIManagerInGame>().m_txtNextWaiting,1f);
+
+        foreach(var player in GameManager.gm.m_listPlayerInfo)
+        {
+            player.m_isWaitingNext = false;
+        }
+
+        BattleManager.bm.m_stateMachine.ChangeState(BATTLESTATE.NEXTFLOOR);
+    }
+
+    #endregion
+
+    #region 공격 이펙트관련 동기화
+
+    [PunRPC]
+    public void PlayEffect(int effType, Vector3 vOwner, Vector3 vTarget, bool bHoming, float fTimer)
+    {
+        if (effType == 0) return;
+
+        EffectManager.Instantiate((EFFECTTYPE)effType, vOwner, vTarget, bHoming, fTimer);
+    }
+
+    #endregion
+
+    #region 아이템 전달
+
+    static public void GiveItem(ITEMINFO item, int targetActorNumber)
+    {
+        string json = JsonUtility.ToJson(item);
+
+        nm.PV.RPC("ReceiveItemRPC", PhotonPlayerListActor(targetActorNumber), json);
+    }
+
+    [PunRPC]
+    public void ReceiveItemRPC(string json)
+    {
+        var item = JsonUtility.FromJson<ITEMINFO>(json);
+
+        item.sprite = ItemManager.GetSprite(item.itemTypeIdx, item.idx);
+
+        InvenManager.AddItem(item);
+        CheckControl.RefreshInventory();
+
+        UIManager.SystemMsg("아이템을 전달 받았습니다.");
+    }
+
+    static public Player PhotonPlayerListActor(int actorNumber)
+    {
+        return PhotonNetwork.CurrentRoom.Players.Values.FirstOrDefault(p => p.ActorNumber == actorNumber);
+    }
+
+    #endregion
+
+    #region 전투에서 끝나서 방으로 돌아가기
+    [PunRPC]
+    public void ReturnRoomRPC()
+    {
+        BattleManager.DefeatToReturnRoom();
     }
 
     #endregion

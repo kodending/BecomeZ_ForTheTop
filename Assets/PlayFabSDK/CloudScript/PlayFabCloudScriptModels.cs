@@ -702,7 +702,9 @@ namespace PlayFab.CloudScriptModels
         Apple,
         NintendoSwitchAccount,
         GooglePlayGames,
-        XboxMobileStore
+        XboxMobileStore,
+        King,
+        BattleNet
     }
 
     [Serializable]

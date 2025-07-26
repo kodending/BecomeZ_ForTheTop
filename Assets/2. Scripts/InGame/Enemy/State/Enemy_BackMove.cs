@@ -10,17 +10,17 @@ public class Enemy_BackMove : EnemyBaseState
 
     public override void OnEnterState()
     {
-        //Debug.Log("나 복귀중이야");
-        //enemyFSM.m_anim.SetBool("IsAttack", false);
-        enemyFSM.m_pv.RPC("AnimBoolRPC", RpcTarget.All, "IsAttack", false);
+        enemyFSM.m_pv.RPC("AnimBoolRPC", RpcTarget.All, enemyFSM.m_sSelectedSkill.name, false);
 
-        //내가 몇번째 에너미인지 알아야됨
-        //그 인덱스에 맞춰 포지션으로 이동해야됨
         int idx = GameManager.gm.m_listEnemyInfo.IndexOf(enemyFSM);
         var newPos = BattleManager.bm.m_trEnemyPos[idx].position;
-        //enemyFSM.transform.DOMove(newPos, 1.1f).SetEase(Ease.InOutCubic);
         enemyFSM.m_pv.RPC("DoMoveRPC", RpcTarget.All, newPos, 1.1f, Ease.InOutCubic);
         enemyFSM.StartCoroutine(ChangeIdle());
+    }
+
+    public override void OnAnimatorMove()
+    {
+
     }
 
     public override void OnUpdateState()

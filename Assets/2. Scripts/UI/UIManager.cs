@@ -114,7 +114,7 @@ public class UIManager : MonoBehaviourPunCallbacks
     {
         m_seq = DOTween.Sequence()
         .SetAutoKill(true)
-        .Append(go.transform.DOScale(1.1f, 0.1f))
+        .Append(go.transform.DOScale(1.2f, 0.2f))
         .Append(go.transform.DOScale(0.2f, 0.2f))
         .OnComplete(() =>
         {

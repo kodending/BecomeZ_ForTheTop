@@ -1,9 +1,7 @@
 using ExitGames.Client.Photon;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using static UnityEditor.Progress;
 
 public class InvenManager : MonoBehaviour
 {
@@ -80,6 +78,41 @@ public class InvenManager : MonoBehaviour
     {
         im.m_dicEquipRune[equipIdx] = item;
 
+        //스킬이 들어가 있고 내 착용스킬 정보에 넣기
+        SKILLINFO skill = new SKILLINFO();
+
+        foreach(var skillInfo in GoogleSheetManager.m_skillInfo)
+        {
+            int skillIdx = int.Parse(skillInfo["INDEX"].ToString());
+            var classes = GoogleSheetManager.ParseAvailableClassType(skillInfo["CLASSTYPE"].ToString());
+            var engName = skillInfo["ENGNAME"].ToString();
+
+            if (skillIdx == im.m_dicEquipRune[equipIdx].skillIdx &&
+                engName == im.m_dicEquipRune[equipIdx].skillEngName)
+            {
+                skill.idx = skillIdx;
+                skill.name = skillInfo["NAME"].ToString();
+                skill.engName = skillInfo["ENGNAME"].ToString();
+                skill.listAvailClasses = classes;
+                skill.iAttackType = int.Parse(skillInfo["ATTACKTYPE"].ToString());
+                skill.iSkillType = int.Parse(skillInfo["SKILLTYPE"].ToString());
+                skill.fAttackPow = float.Parse(skillInfo["ATTACK"].ToString());
+                skill.fAttackProb = float.Parse(skillInfo["ATTACKPROB"].ToString());
+                skill.iConsumeMp = int.Parse(skillInfo["CONSUMEMP"].ToString());
+                skill.fHitTime = float.Parse(skillInfo["HITTIME"].ToString());
+                skill.iProbCnt = int.Parse(skillInfo["PROBCOUNT"].ToString());
+                skill.iMaxCoolTime = int.Parse(skillInfo["COOLTIME"].ToString());
+                skill.iCurCoolTime = int.Parse(skillInfo["COOLTIME"].ToString());
+                skill.iAtkEffectIdx = int.Parse(skillInfo["ATTACKEFFECT"].ToString());
+                skill.iHitEffectIdx = int.Parse(skillInfo["HITEFFECT"].ToString());
+                skill.iAttackPosIdx = int.Parse(skillInfo["ATTACKPOS"].ToString());
+                skill.bHoming = int.Parse(skillInfo["HOMING"].ToString()) != 0;
+
+                GameManager.gm.m_inGamePlayer.m_sCurStats.listSkills.Add(skill);
+                break;
+            }
+        }
+
         RemoveItem(CheckControl.cc.m_curPage, invenIdx, item);
 
         CheckControl.RefreshInventory();
@@ -101,6 +134,18 @@ public class InvenManager : MonoBehaviour
 
     static public void DetachRune(ITEMINFO item, int listIdx)
     {
+        //착용한 룬에 들어간 스킬 빼기
+        var listSkill = GameManager.gm.m_inGamePlayer.m_sCurStats.listSkills;
+
+        for (int i = listSkill.Count - 1; i >= 0; --i)
+        {
+            if(listSkill[i].idx == im.m_dicEquipRune[listIdx].skillIdx)
+            {
+                listSkill.RemoveAt(i);
+                break;
+            }
+        }
+
         im.m_dicEquipRune[listIdx] = new ITEMINFO();
 
         AddItem(item);
@@ -142,5 +187,23 @@ public class InvenManager : MonoBehaviour
     static public Dictionary<int, ITEMINFO> GetEquipment()
     {
         return im.m_dicEquipRune;
+    }
+
+    static public void ClearInven()
+    {
+        im.m_dicEquipRune.Clear();
+        im.m_dicInvenInfoInPage.Clear();
+
+        if (im.m_dicInvenInfoInPage.Count == 0)
+        {
+            List<ITEMINFO> listItem = new List<ITEMINFO>();
+            im.m_dicInvenInfoInPage.Add(1, listItem);
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
+            ITEMINFO item = new ITEMINFO();
+            im.m_dicEquipRune.Add(i, item);
+        }
     }
 }

@@ -7,11 +7,6 @@ public class ItemManager : MonoBehaviour
 {
     static public ItemManager im;
 
-    public List<Dictionary<string, object>> m_runeInfo;
-    public List<Dictionary<string, object>> m_consumeInfo;
-    public List<Dictionary<string, object>> m_skillInfo;
-    public List<Dictionary<string, object>> m_RankStatInfo;
-
     [SerializeField]
     List<Sprite> m_listConsumeSprite, m_listRuneSprite;
 
@@ -19,14 +14,6 @@ public class ItemManager : MonoBehaviour
     {
         im = this;
         DontDestroyOnLoad(im);
-    }
-
-    private void Start()
-    {
-        m_runeInfo = CSVManager.instance.m_dicData[LOCALDATALOADTYPE.RUNEINFO].recordDataList;
-        m_consumeInfo = CSVManager.instance.m_dicData[LOCALDATALOADTYPE.CONSUMEINFO].recordDataList;
-        m_skillInfo = CSVManager.instance.m_dicData[LOCALDATALOADTYPE.SKILLINFO].recordDataList;
-        m_RankStatInfo = CSVManager.instance.m_dicData[LOCALDATALOADTYPE.RANKSTATINFO].recordDataList;
     }
 
     //아이템 로드한거 정리하고 관련된 이미지 정리하기
@@ -49,7 +36,7 @@ public class ItemManager : MonoBehaviour
         {
             case ITEMTYPE.RUNE:
 
-                Dictionary<string, object> rune = RandomWeight.RandomItem(im.m_runeInfo, eWeightType);
+                Dictionary<string, object> rune = RandomWeight.RandomItem(GoogleSheetManager.m_runeInfo, eWeightType);
                 item.idx = int.Parse(rune["INDEX"].ToString());
                 item.iType = int.Parse(rune["TYPE"].ToString());
                 item.iRank = int.Parse(rune["RANK"].ToString());
@@ -57,10 +44,11 @@ public class ItemManager : MonoBehaviour
                 item.maxStack = 1;
                 item.curStack = 1;
 
-                Dictionary<string, object> skill = RandomWeight.RandomItem(im.m_skillInfo, eWeightType);
+                Dictionary<string, object> skill = RandomWeight.RandomItem(GoogleSheetManager.m_skillInfo, eWeightType);
                 item.skillIdx = int.Parse(skill["INDEX"].ToString());
                 item.strExplain = skill["EXPLAIN"].ToString();
                 item.strName = skill["NAME"].ToString();
+                item.skillEngName = skill["ENGNAME"].ToString();
                 item.fPoint = float.Parse(skill["ATTACK"].ToString());
 
                 //랜덤스탯 부여
@@ -69,7 +57,7 @@ public class ItemManager : MonoBehaviour
                 break;
             case ITEMTYPE.CONSUME:
 
-                Dictionary<string, object> consume = RandomWeight.RandomItem(im.m_consumeInfo, eWeightType);
+                Dictionary<string, object> consume = RandomWeight.RandomItem(GoogleSheetManager.m_consumeInfo, eWeightType);
                 item.idx = int.Parse(consume["INDEX"].ToString());
                 item.iType = int.Parse(consume["TYPE"].ToString());
                 item.iRank = int.Parse(consume["RANK"].ToString());
@@ -94,7 +82,7 @@ public class ItemManager : MonoBehaviour
     {
         RUNESTAT[] arr = new RUNESTAT[iRank];
 
-        Dictionary<string, object> info = im.m_RankStatInfo[iRank - 1];
+        Dictionary<string, object> info = GoogleSheetManager.m_RankStatInfo[iRank - 1];
 
         for(int i = 0; i < iRank; i++)
         {
@@ -117,5 +105,23 @@ public class ItemManager : MonoBehaviour
         }
 
         return arr;
+    }
+
+    static public Sprite GetSprite(int itemType, int idx)
+    {
+        Sprite sprite = null;
+
+        switch ((ITEMTYPE)itemType)
+        {
+            case ITEMTYPE.RUNE:
+                sprite = im.m_listRuneSprite[idx];
+                break;
+
+            case ITEMTYPE.CONSUME:
+                sprite = im.m_listConsumeSprite[idx];
+                break;
+        }
+
+        return sprite;
     }
 }

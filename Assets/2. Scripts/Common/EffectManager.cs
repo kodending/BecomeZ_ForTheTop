@@ -10,9 +10,9 @@ public class EffectManager : MonoBehaviourPunCallbacks
     public static EffectManager em;
 
     [SerializeField]
-    GameObject m_goEffPrefab;
+    public GameObject m_goEffPrefab;
 
-    Queue<GameObject> m_poolingEffects = new Queue<GameObject>();
+    static Queue<GameObject> m_poolingEffects = new Queue<GameObject>();
 
     private void Awake()
     {
@@ -20,38 +20,7 @@ public class EffectManager : MonoBehaviourPunCallbacks
         DontDestroyOnLoad(em);
     }
 
-    private void Update()
-    {
-        //타이머 이후 없애기
-        //EffectThread();
-    }
-
-    //void EffectThread()
-    //{
-    //    EffectInfo[] arrEffs = GetComponentsInChildren<EffectInfo>();
-
-    //    if(arrEffs != null)
-    //    {
-    //        foreach(var eff in arrEffs)
-    //        {
-    //            if (!eff.gameObject.activeSelf) continue;
-
-    //            eff.m_fTimer += Time.deltaTime;
-
-    //            if(eff.m_fTimer > eff.m_fTimerForLim)
-    //            {
-    //                ReturnEffObj(eff.gameObject);
-    //            }
-
-    //            else
-    //            {
-    //                eff.EffectMove();
-    //            }
-    //        }
-    //    }
-    //}
-
-    public GameObject Instantiate(EFFECTTYPE eType, GameObject goOwner, GameObject goTarget, bool bHoming, float fTimer)
+    static public GameObject Instantiate(EFFECTTYPE eType, Vector3 goOwner, Vector3 goTarget, bool bHoming, float fTimer)
     {
         if(m_poolingEffects.Count > 0)
         {
@@ -62,21 +31,19 @@ public class EffectManager : MonoBehaviourPunCallbacks
 
         else
         {
-            GameObject go = Instantiate(m_goEffPrefab);
-            go.transform.SetParent(this.transform);
+            GameObject go = Instantiate(em.m_goEffPrefab);
+            go.transform.SetParent(em.transform);
             go.GetComponent<EffectInfo>().SetEffectObj(eType, goOwner, goTarget, bHoming, fTimer);
             return go;
         }
-
-        return null;
     }
 
-    public void ReturnEffObj(GameObject eff)
+    static public void ReturnEffObj(GameObject eff)
     {
         var effInfo = eff.GetComponent<EffectInfo>();
 
-        int iTypeNum = (int)effInfo.m_eEffectType;
-        effInfo.m_goCurEffObj = transform.GetChild(iTypeNum).gameObject;
+        effInfo.m_fTimer = 0;
+        effInfo.m_fTimerForLim = 0;
         effInfo.m_goCurEffObj.SetActive(false);
         eff.SetActive(false);
         m_poolingEffects.Enqueue(eff);
